@@ -15,10 +15,10 @@ spec:
       targetRevision: "1.22.0"
       helm:
         releaseName: istio-base
-    # Gateway API CRDs (standard channel) required by Istio Gateway API support
-    - repoURL: https://github.com/kubernetes-sigs/gateway-api
-      targetRevision: v1.1.0
-      path: config/crd/standard
+    # Gateway API CRDs (standard channel v1.1.0) — vendored to avoid kustomize overlay issues
+    - repoURL: https://github.com/ziednov007/devops-coding-challenge
+      targetRevision: HEAD
+      path: argocd/crds
   destination:
     server: https://kubernetes.default.svc
     namespace: istio-system
