@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/zied-boulifi/crewmeister-challenge
-  tag: 1c3651e
+  tag: aedcc51
   pullPolicy: Always
 
 service:
