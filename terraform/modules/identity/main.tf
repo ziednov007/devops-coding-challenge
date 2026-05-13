@@ -31,6 +31,13 @@ resource "azurerm_role_assignment" "agic_rg_reader" {
   principal_id         = var.agic_object_id
 }
 
+# AKS cluster identity needs Network Contributor on the VNet to manage internal LBs
+resource "azurerm_role_assignment" "aks_vnet_network_contributor" {
+  scope                = var.vnet_id
+  role_definition_name = "Network Contributor"
+  principal_id         = var.aks_identity_principal_id
+}
+
 # App pods read secrets from Key Vault via Workload Identity
 resource "azurerm_role_assignment" "app_kv_secrets" {
   scope                = var.keyvault_id

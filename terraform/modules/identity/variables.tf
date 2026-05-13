@@ -42,3 +42,13 @@ variable "appgw_id" {
 variable "appgw_principal_id" {
   type = string
 }
+
+variable "aks_identity_principal_id" {
+  type        = string
+  description = "Principal ID of the AKS cluster system-assigned identity (needed for VNet Network Contributor)"
+}
+
+variable "vnet_id" {
+  type        = string
+  description = "Resource ID of the VNet — AKS identity gets Network Contributor to manage internal LBs"
+}
