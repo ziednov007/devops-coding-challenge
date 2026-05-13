@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/zied-boulifi/crewmeister-challenge
-  tag: ceba0ca
+  tag: d594b17
   pullPolicy: Always
   pullSecretName: ghcr-pull-secret
 
