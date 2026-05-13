@@ -21,7 +21,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 ---
-# Shared Istio ingress gateway — single LB, all routes attach here
+# Shared Istio ingress gateway — internal LB (private IP, no public IP consumed)
+# AGIC fronts it via the Ingress below, keeping 68.210.96.188 as the public entry point
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -82,3 +83,46 @@ spec:
       backendRefs:
         - name: kube-prometheus-stack-grafana
           port: 80
+---
+# AGIC Ingress — public entry point at 68.210.96.188, routes all hosts to the Istio gateway
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shared-gateway-ingress
+  namespace: istio-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    kubernetes.io/ingress.class: azure/application-gateway
+    appgw.ingress.kubernetes.io/backend-protocol: "http"
+spec:
+  rules:
+    - host: apps.ziednov007.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shared-gateway-istio
+                port:
+                  number: 80
+    - host: argocd.ziednov007.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shared-gateway-istio
+                port:
+                  number: 80
+    - host: monitoring.ziednov007.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shared-gateway-istio
+                port:
+                  number: 80

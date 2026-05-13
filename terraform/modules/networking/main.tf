@@ -34,13 +34,8 @@ resource "azurerm_public_ip" "appgw" {
   sku                 = "Standard"
 }
 
-resource "azurerm_public_ip" "vpn" {
-  name                = "${var.name}-vpn-pip"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  allocation_method   = "Static"
-  sku                 = "Standard"
-}
+# VPN pip removed — Azure for Students is capped at 3 public IPs in austriaeast.
+# Re-add when VPN module is enabled and the quota has been increased.
 
 resource "azurerm_network_security_group" "aks" {
   name                = "${var.name}-aks-nsg"

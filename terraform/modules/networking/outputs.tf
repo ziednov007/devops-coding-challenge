@@ -22,6 +22,3 @@ output "appgw_public_ip" {
   value = azurerm_public_ip.appgw.ip_address
 }
 
-output "vpn_public_ip_id" {
-  value = azurerm_public_ip.vpn.id
-}
