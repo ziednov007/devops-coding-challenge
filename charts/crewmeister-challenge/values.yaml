@@ -9,16 +9,12 @@ service:
   type: ClusterIP
   port: 8080
 
-# AGIC-managed ingress — annotations tell Application Gateway how to route
-ingress:
+# Istio Gateway API — HTTPRoute attaches to the shared gateway in istio-system
+gateway:
   enabled: true
-  host: crewmeister.internal
-  annotations:
-    kubernetes.io/ingress.class: azure/application-gateway
-    appgw.ingress.kubernetes.io/ssl-redirect: "true"
-    appgw.ingress.kubernetes.io/backend-protocol: "http"
-  tls:
-    secretName: crewmeister-tls
+  name: shared-gateway
+  namespace: istio-system
+  host: apps.ziednov007.com
 
 mysql:
   host: mysql

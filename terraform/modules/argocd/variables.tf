@@ -3,6 +3,11 @@ variable "argocd_version" {
   default = "7.4.3"
 }
 
+variable "argocd_hostname" {
+  type        = string
+  description = "Hostname for the ArgoCD Ingress (e.g. argocd.1.2.3.4.nip.io)"
+}
+
 variable "kube_host" {
   type = string
 }

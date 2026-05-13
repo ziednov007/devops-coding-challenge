@@ -1,28 +1,23 @@
-{{- if .Values.ingress.enabled }}
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+{{- if .Values.gateway.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
 metadata:
   name: {{ include "crewmeister-challenge.fullname" . }}
   labels:
     {{- include "crewmeister-challenge.labels" . | nindent 4 }}
-  annotations:
-    {{- toYaml .Values.ingress.annotations | nindent 4 }}
 spec:
+  parentRefs:
+    - name: {{ .Values.gateway.name }}
+      namespace: {{ .Values.gateway.namespace }}
+      sectionName: http
+  hostnames:
+    - {{ .Values.gateway.host | quote }}
   rules:
-    - host: {{ .Values.ingress.host }}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ include "crewmeister-challenge.fullname" . }}
-                port:
-                  number: {{ .Values.service.port }}
-  {{- if .Values.ingress.tls }}
-  tls:
-    - hosts:
-        - {{ .Values.ingress.host }}
-      secretName: {{ .Values.ingress.tls.secretName }}
-  {{- end }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ include "crewmeister-challenge.fullname" . }}
+          port: {{ .Values.service.port }}
 {{- end }}

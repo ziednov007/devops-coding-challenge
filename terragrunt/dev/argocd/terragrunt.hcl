@@ -18,9 +18,19 @@ dependency "aks" {
   }
 }
 
+dependency "networking" {
+  config_path = "../networking"
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
+  mock_outputs_merge_strategy_with_state  = "shallow"
+  mock_outputs = {
+    appgw_public_ip = "1.2.3.4"
+  }
+}
+
 inputs = {
-  kube_host = dependency.aks.outputs.kube_config.host
-  kube_cert = dependency.aks.outputs.kube_config.client_certificate
-  kube_key  = dependency.aks.outputs.kube_config.client_key
-  kube_ca   = dependency.aks.outputs.kube_config.cluster_ca_certificate
+  kube_host       = dependency.aks.outputs.kube_config.host
+  kube_cert       = dependency.aks.outputs.kube_config.client_certificate
+  kube_key        = dependency.aks.outputs.kube_config.client_key
+  kube_ca         = dependency.aks.outputs.kube_config.cluster_ca_certificate
+  argocd_hostname = "argocd.ziednov007.com"
 }

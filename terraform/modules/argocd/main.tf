@@ -14,4 +14,9 @@ resource "helm_release" "argocd" {
     name  = "server.ingress.enabled"
     value = "false"
   }
+  # AppGW terminates SSL; ArgoCD serves plain HTTP on the backend
+  set {
+    name  = "configs.params.server\\.insecure"
+    value = "true"
+  }
 }
