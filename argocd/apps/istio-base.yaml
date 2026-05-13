@@ -12,10 +12,10 @@ spec:
   sources:
     - repoURL: https://istio-release.storage.googleapis.com/charts
       chart: base
-      targetRevision: "1.22.0"
+      targetRevision: "1.23.0"
       helm:
         releaseName: istio-base
-    # Gateway API CRDs (standard channel v1.1.0) — vendored to avoid kustomize overlay issues
+    # Gateway API CRDs (standard channel v1.2.1) — vendored to avoid kustomize overlay issues
     - repoURL: https://github.com/ziednov007/devops-coding-challenge
       targetRevision: HEAD
       path: argocd/crds

@@ -21,7 +21,35 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 ---
-# Shared Istio ingress gateway — internal LB (private IP, no public IP consumed)
+# Force the Istio-managed gateway service to be ClusterIP (no LB, no public/private IP)
+# AGIC reaches it directly via in-cluster DNS: shared-gateway-istio.istio-system.svc
+apiVersion: gateway.istio.io/v1
+kind: GatewayParameters
+metadata:
+  name: cluster-ip-params
+  namespace: istio-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  kube:
+    service:
+      type: ClusterIP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: istio-internal
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  controllerName: istio.io/gateway-controller
+  parametersRef:
+    group: gateway.istio.io
+    kind: GatewayParameters
+    name: cluster-ip-params
+    namespace: istio-system
+---
+# Shared Istio ingress gateway — ClusterIP only, no external IP
 # AGIC fronts it via the Ingress below, keeping 68.210.96.188 as the public entry point
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
@@ -31,7 +59,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
 spec:
-  gatewayClassName: istio
+  gatewayClassName: istio-internal
   listeners:
     - name: http
       protocol: HTTP
