@@ -31,3 +31,35 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Terraform ###
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfplan
+*.tfvars
+!*.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+crash.log
+crash.*.log
+
+### Terragrunt ###
+**/.terragrunt-cache/
+
+### Secrets ###
+*.pem
+*.pfx
+*.p12
+*.key
+*.crt
+.env
+.env.*
+!.env.example
+
+### OS ###
+.DS_Store
+Thumbs.db

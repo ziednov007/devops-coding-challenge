@@ -1,0 +1,45 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/zied-boulifi/crewmeister-challenge
+  tag: latest
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# AGIC-managed ingress — annotations tell Application Gateway how to route
+ingress:
+  enabled: true
+  host: crewmeister.internal
+  annotations:
+    kubernetes.io/ingress.class: azure/application-gateway
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
+    appgw.ingress.kubernetes.io/backend-protocol: "http"
+  tls:
+    secretName: crewmeister-tls
+
+mysql:
+  host: mysql
+  port: 3306
+  database: challenge
+  username: root
+
+actuator:
+  endpoints: health,info
+
+# Workload Identity + Key Vault CSI integration
+keyVault:
+  enabled: false        # set true on AKS
+  name: ""              # e.g. crewmeister-kv
+  tenantId: ""          # Azure tenant ID
+  workloadIdentityClientId: ""  # output: app_identity_client_id
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi

@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: crewmeister-challenge
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd-image-updater.argoproj.io/image-list: app=ghcr.io/zied-boulifi/crewmeister-challenge
+    argocd-image-updater.argoproj.io/app.update-strategy: digest
+    argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/zied-boulifi/crewmeister-challenge
+    targetRevision: HEAD
+    path: charts/crewmeister-challenge
+    helm:
+      releaseName: crewmeister-challenge
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: crewmeister
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

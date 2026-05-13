@@ -1,0 +1,39 @@
+data "azurerm_client_config" "current" {}
+
+# ── App workload identity ─────────────────────────────────────────────────────
+resource "azurerm_user_assigned_identity" "app" {
+  name                = "${var.name}-app-identity"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+}
+
+resource "azurerm_federated_identity_credential" "app" {
+  name                = "${var.name}-app-federated"
+  resource_group_name = var.resource_group_name
+  parent_id           = azurerm_user_assigned_identity.app.id
+  audience            = ["api://AzureADTokenExchange"]
+  issuer              = var.oidc_issuer_url
+  subject             = "system:serviceaccount:${var.app_namespace}:${var.app_service_account}"
+}
+
+# ── Role assignments ──────────────────────────────────────────────────────────
+
+# AGIC (managed by AKS addon) needs to control the Application Gateway
+resource "azurerm_role_assignment" "agic_appgw_contributor" {
+  scope                = var.appgw_id
+  role_definition_name = "Contributor"
+  principal_id         = var.agic_object_id
+}
+
+resource "azurerm_role_assignment" "agic_rg_reader" {
+  scope                = var.resource_group_id
+  role_definition_name = "Reader"
+  principal_id         = var.agic_object_id
+}
+
+# App pods read secrets from Key Vault via Workload Identity
+resource "azurerm_role_assignment" "app_kv_secrets" {
+  scope                = var.keyvault_id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.app.principal_id
+}

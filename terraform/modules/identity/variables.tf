@@ -1,0 +1,44 @@
+variable "name" {
+  type = string
+}
+
+variable "resource_group_name" {
+  type = string
+}
+
+variable "location" {
+  type = string
+}
+
+variable "resource_group_id" {
+  type = string
+}
+
+variable "keyvault_id" {
+  type = string
+}
+
+variable "app_namespace" {
+  type = string
+}
+
+variable "app_service_account" {
+  type    = string
+  default = "crewmeister-challenge"
+}
+
+variable "oidc_issuer_url" {
+  type = string
+}
+
+variable "agic_object_id" {
+  type = string
+}
+
+variable "appgw_id" {
+  type = string
+}
+
+variable "appgw_principal_id" {
+  type = string
+}
