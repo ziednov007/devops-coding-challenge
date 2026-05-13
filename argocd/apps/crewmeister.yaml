@@ -6,14 +6,15 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
   annotations:
-    argocd-image-updater.argoproj.io/image-list: app=ghcr.io/zied-boulifi/crewmeister-challenge
+    argocd.argoproj.io/sync-wave: "4"
+    argocd-image-updater.argoproj.io/image-list: app=ghcr.io/ziednov007/devops-coding-challenge
     argocd-image-updater.argoproj.io/app.update-strategy: digest
     argocd-image-updater.argoproj.io/app.helm.image-name: image.repository
     argocd-image-updater.argoproj.io/app.helm.image-tag: image.tag
 spec:
   project: default
   source:
-    repoURL: https://github.com/zied-boulifi/crewmeister-challenge
+    repoURL: https://github.com/ziednov007/devops-coding-challenge
     targetRevision: HEAD
     path: charts/crewmeister-challenge
     helm:

@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/zied-boulifi/crewmeister-challenge
+    repoURL: https://github.com/ziednov007/devops-coding-challenge
     targetRevision: HEAD
     path: argocd/apps
   destination:
