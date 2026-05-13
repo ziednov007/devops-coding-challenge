@@ -4,6 +4,7 @@ image:
   repository: ghcr.io/zied-boulifi/crewmeister-challenge
   tag: aedcc51
   pullPolicy: Always
+  pullSecretName: ghcr-pull-secret
 
 service:
   type: ClusterIP

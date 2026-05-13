@@ -18,6 +18,10 @@ spec:
         {{- end }}
     spec:
       serviceAccountName: crewmeister-challenge
+      {{- if .Values.image.pullSecretName }}
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecretName }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
