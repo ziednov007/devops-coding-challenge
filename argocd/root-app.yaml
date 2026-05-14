@@ -21,3 +21,9 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - SkipDryRunOnMissingResource=true
+  ignoreDifferences:
+    - group: argoproj.io
+      kind: Application
+      name: crewmeister-challenge
+      jsonPointers:
+        - /spec/source/helm/parameters

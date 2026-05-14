@@ -32,7 +32,7 @@ keyVault:
   enabled: true
   name: "crewmeister-dev-kv"
   tenantId: "604f1a96-cbe8-43f8-abbf-f8eaf5d85730"
-  workloadIdentityClientId: "a0a10e9a-6a7f-434f-bd35-0d3455a4ee27"
+  workloadIdentityClientId: ""  # injected at deploy time via Terraform → ArgoCD helm.parameters
 
 resources:
   requests:

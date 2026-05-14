@@ -26,10 +26,18 @@ dependency "argocd" {
   skip_outputs = true
 }
 
+dependency "identity" {
+  config_path = "../identity"
+  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
+  mock_outputs_merge_strategy_with_state  = "shallow"
+  mock_outputs = { app_identity_client_id = "00000000-0000-0000-0000-000000000000" }
+}
+
 inputs = {
-  repo_url  = local.env.repo_url
-  kube_host = dependency.aks.outputs.kube_config.host
-  kube_cert = dependency.aks.outputs.kube_config.client_certificate
-  kube_key  = dependency.aks.outputs.kube_config.client_key
-  kube_ca   = dependency.aks.outputs.kube_config.cluster_ca_certificate
+  repo_url               = local.env.repo_url
+  kube_host              = dependency.aks.outputs.kube_config.host
+  kube_cert              = dependency.aks.outputs.kube_config.client_certificate
+  kube_key               = dependency.aks.outputs.kube_config.client_key
+  kube_ca                = dependency.aks.outputs.kube_config.cluster_ca_certificate
+  app_identity_client_id = dependency.identity.outputs.app_identity_client_id
 }

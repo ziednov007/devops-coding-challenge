@@ -2,6 +2,10 @@ variable "repo_url" {
   type = string
 }
 
+variable "app_identity_client_id" {
+  type = string
+}
+
 variable "kube_host" {
   type = string
 }
