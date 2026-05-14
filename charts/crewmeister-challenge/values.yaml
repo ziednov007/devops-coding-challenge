@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/zied-boulifi/crewmeister-challenge
+  repository: ghcr.io/ziednov007/devops-coding-challenge
   tag: c499118
   pullPolicy: Always
   pullSecretName: ghcr-pull-secret
@@ -18,6 +18,7 @@ gateway:
   host: apps.ziednov007.com
 
 mysql:
+  deploy: true   # deploys in-cluster MySQL; set false when using an external DB
   host: mysql
   port: 3306
   database: challenge
@@ -28,10 +29,10 @@ actuator:
 
 # Workload Identity + Key Vault CSI integration
 keyVault:
-  enabled: false        # set true on AKS
-  name: ""              # e.g. crewmeister-kv
-  tenantId: ""          # Azure tenant ID
-  workloadIdentityClientId: ""  # output: app_identity_client_id
+  enabled: true
+  name: "crewmeister-dev-kv"
+  tenantId: "604f1a96-cbe8-43f8-abbf-f8eaf5d85730"
+  workloadIdentityClientId: "a0a10e9a-6a7f-434f-bd35-0d3455a4ee27"
 
 resources:
   requests:
