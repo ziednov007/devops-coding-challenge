@@ -8,7 +8,4 @@ metadata:
     {{- include "crewmeister-challenge.labels" . | nindent 4 }}
 spec:
   host: mysql.{{ .Release.Namespace }}.svc.cluster.local
-  trafficPolicy:
-    tls:
-      mode: DISABLE
 {{- end }}
