@@ -25,6 +25,10 @@ spec:
               type: loki
               url: http://loki-stack.observability.svc.cluster.local:3100
               access: proxy
+            - name: Jaeger
+              type: jaeger
+              url: http://jaeger-query.observability.svc.cluster.local:16686
+              access: proxy
           dashboardProviders:
             dashboardproviders.yaml:
               apiVersion: 1
@@ -48,17 +52,26 @@ spec:
           prometheusSpec:
             additionalScrapeConfigs:
               - job_name: istio-envoy
+                metrics_path: /stats/prometheus
                 kubernetes_sd_configs:
                   - role: pod
                 relabel_configs:
                   - source_labels: [__meta_kubernetes_pod_container_name]
                     action: keep
                     regex: istio-proxy
-                  - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+                  - source_labels: [__address__]
                     action: replace
-                    regex: ([^:]+)(?::\d+)?;(\d+)
-                    replacement: $1:15090
+                    regex: '([^:]+)(?::\d+)?'
+                    replacement: '$1:15090'
                     target_label: __address__
+                  - action: labelmap
+                    regex: __meta_kubernetes_pod_label_(.+)
+                  - source_labels: [__meta_kubernetes_namespace]
+                    action: replace
+                    target_label: namespace
+                  - source_labels: [__meta_kubernetes_pod_name]
+                    action: replace
+                    target_label: pod
   destination:
     server: https://kubernetes.default.svc
     namespace: observability

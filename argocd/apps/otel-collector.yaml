@@ -1,0 +1,144 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: otel-collector
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: default
+  source:
+    repoURL: https://open-telemetry.github.io/opentelemetry-helm-charts
+    chart: opentelemetry-collector
+    targetRevision: "0.110.0"
+    helm:
+      releaseName: otel-collector
+      values: |
+        mode: daemonset
+
+        image:
+          repository: otel/opentelemetry-collector-contrib
+          tag: "0.113.0"
+
+        serviceAccount:
+          create: true
+
+        clusterRole:
+          create: true
+          rules:
+            - apiGroups: [""]
+              resources: ["pods", "namespaces", "nodes"]
+              verbs: ["get", "list", "watch"]
+            - apiGroups: ["apps"]
+              resources: ["replicasets"]
+              verbs: ["get", "list", "watch"]
+
+        # Expose OTLP ports so app sidecars / pods can send traces directly
+        ports:
+          otlp:
+            enabled: true
+            containerPort: 4317
+            servicePort: 4317
+            protocol: TCP
+          otlp-http:
+            enabled: true
+            containerPort: 4318
+            servicePort: 4318
+            protocol: TCP
+
+        config:
+          receivers:
+            # Collect container logs from every pod on the node
+            filelog:
+              include:
+                - /var/log/pods/*/*/*.log
+              include_file_path: true
+              include_file_name: false
+              operators:
+                - type: container
+                  id: container-parser
+                  add_metadata_from_filepath: true
+
+            # Receive OTLP traces/metrics from app pods
+            otlp:
+              protocols:
+                grpc:
+                  endpoint: 0.0.0.0:4317
+                http:
+                  endpoint: 0.0.0.0:4318
+
+          processors:
+            batch:
+              timeout: 5s
+              send_batch_size: 1000
+
+            # Drop high-cardinality debug logs to keep Loki storage manageable
+            filter/drop_debug:
+              logs:
+                exclude:
+                  match_type: strict
+                  severity_texts: ["TRACE", "DEBUG"]
+
+            resource:
+              attributes:
+                - action: insert
+                  key: loki.resource.labels
+                  value: k8s.namespace.name, k8s.pod.name, k8s.container.name
+
+          exporters:
+            # Logs → Loki
+            loki:
+              endpoint: http://loki-stack.observability.svc.cluster.local:3100/loki/api/v1/push
+
+            # Traces → Jaeger (OTLP)
+            otlp/jaeger:
+              endpoint: jaeger-collector.observability.svc.cluster.local:4317
+              tls:
+                insecure: true
+
+          service:
+            pipelines:
+              logs:
+                receivers: [filelog]
+                processors: [batch, filter/drop_debug, resource]
+                exporters: [loki]
+              traces:
+                receivers: [otlp]
+                processors: [batch]
+                exporters: [otlp/jaeger]
+
+        # Mount host log directories
+        extraVolumes:
+          - name: varlogpods
+            hostPath:
+              path: /var/log/pods
+          - name: varlibdockercontainers
+            hostPath:
+              path: /var/lib/docker/containers
+
+        extraVolumeMounts:
+          - name: varlogpods
+            mountPath: /var/log/pods
+            readOnly: true
+          - name: varlibdockercontainers
+            mountPath: /var/lib/docker/containers
+            readOnly: true
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+          limits:
+            cpu: 500m
+            memory: 500Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

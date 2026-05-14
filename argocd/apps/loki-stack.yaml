@@ -18,14 +18,15 @@ spec:
       values: |
         loki:
           enabled: true
+          image:
+            tag: "2.9.10"   # 2.6.1 (chart default) breaks Grafana 11 health check (no vector() support)
           persistence:
             enabled: true
             size: 10Gi
         promtail:
-          enabled: true
+          enabled: false   # replaced by OpenTelemetry Collector (see otel-collector ArgoCD app)
         grafana:
-          # Grafana is managed by kube-prometheus-stack; configure Loki as a data source there
-          enabled: false
+          enabled: false   # Grafana is managed by kube-prometheus-stack
   destination:
     server: https://kubernetes.default.svc
     namespace: observability
