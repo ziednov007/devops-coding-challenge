@@ -7,11 +7,12 @@ resource "azurerm_kubernetes_cluster" "this" {
   workload_identity_enabled = true
 
   default_node_pool {
-    name           = "default"
-    node_count     = var.node_count
-    vm_size        = var.node_vm_size
-    vnet_subnet_id = var.aks_subnet_id
-    max_pods       = var.max_pods
+    name                        = "default"
+    node_count                  = var.node_count
+    vm_size                     = var.node_vm_size
+    vnet_subnet_id              = var.aks_subnet_id
+    max_pods                    = var.max_pods
+    temporary_name_for_rotation = "defaulttmp"
   }
 
   identity { type = "SystemAssigned" }
