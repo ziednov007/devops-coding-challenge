@@ -156,6 +156,7 @@ resource "azurerm_application_gateway" "this" {
   lifecycle {
     ignore_changes = [
       backend_address_pool, backend_http_settings,
+      frontend_port,
       http_listener, probe, request_routing_rule,
       redirect_configuration, url_path_map, tags,
     ]
