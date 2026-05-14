@@ -16,6 +16,8 @@ spec:
         {{- if .Values.keyVault.enabled }}
         azure.workload.identity/use: "true"
         {{- end }}
+      annotations:
+        sidecar.istio.io/inject: "false"
     spec:
       serviceAccountName: crewmeister-challenge
       {{- if .Values.image.pullSecretName }}
