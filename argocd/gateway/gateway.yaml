@@ -1,0 +1,103 @@
+# Shared Istio ingress gateway — ClusterIP only, no external IP
+# AGIC fronts it via the Ingress below, keeping the App GW public IP as the entry point
+# networking.istio.io/service-type forces ClusterIP without needing the GatewayParameters CRD
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: shared-gateway
+  namespace: istio-system
+  annotations:
+    networking.istio.io/service-type: ClusterIP
+spec:
+  gatewayClassName: istio
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  parentRefs:
+    - name: shared-gateway
+      namespace: istio-system
+  hostnames:
+    - argocd.ziednov007.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: argocd-server
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: grafana
+  namespace: observability
+spec:
+  parentRefs:
+    - name: shared-gateway
+      namespace: istio-system
+  hostnames:
+    - monitoring.ziednov007.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: kube-prometheus-stack-grafana
+          port: 80
+---
+# AGIC Ingress — public entry point, routes all hosts to the Istio ClusterIP gateway
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shared-gateway-ingress
+  namespace: istio-system
+  annotations:
+    kubernetes.io/ingress.class: azure/application-gateway
+    appgw.ingress.kubernetes.io/backend-protocol: "http"
+    appgw.ingress.kubernetes.io/health-probe-port: "15021"
+    appgw.ingress.kubernetes.io/health-probe-path: "/healthz/ready"
+spec:
+  rules:
+    - host: apps.ziednov007.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shared-gateway-istio
+                port:
+                  number: 80
+    - host: argocd.ziednov007.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shared-gateway-istio
+                port:
+                  number: 80
+    - host: monitoring.ziednov007.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shared-gateway-istio
+                port:
+                  number: 80
