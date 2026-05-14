@@ -18,6 +18,7 @@ spec:
       values: |
         loki:
           enabled: true
+          replicas: 0
           image:
             tag: "2.9.10"   # 2.6.1 (chart default) breaks Grafana 11 health check (no vector() support)
           persistence:
