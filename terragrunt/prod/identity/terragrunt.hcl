@@ -38,6 +38,7 @@ dependency "appgw" {
   mock_outputs = {
     appgw_id           = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.Network/applicationGateways/mock"
     appgw_principal_id = "00000000-0000-0000-0000-000000000000"
+    appgw_identity_id  = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.ManagedIdentity/userAssignedIdentities/mock"
   }
 }
 
@@ -52,6 +53,7 @@ inputs = {
   aks_identity_principal_id     = dependency.aks.outputs.cluster_identity_principal_id
   appgw_id                     = dependency.appgw.outputs.appgw_id
   appgw_principal_id           = dependency.appgw.outputs.appgw_principal_id
+  appgw_identity_id            = dependency.appgw.outputs.appgw_identity_id
   app_namespace                = local.env.app_namespace
   vnet_id                      = dependency.networking.outputs.vnet_id
 }

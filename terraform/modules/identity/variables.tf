@@ -43,6 +43,11 @@ variable "appgw_principal_id" {
   type = string
 }
 
+variable "appgw_identity_id" {
+  type        = string
+  description = "Resource ID of the AppGW user-assigned managed identity — AGIC needs Managed Identity Operator on it"
+}
+
 variable "aks_identity_principal_id" {
   type        = string
   description = "Principal ID of the AKS cluster system-assigned identity (needed for VNet Network Contributor)"

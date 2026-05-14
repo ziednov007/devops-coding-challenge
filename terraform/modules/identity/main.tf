@@ -31,6 +31,14 @@ resource "azurerm_role_assignment" "agic_rg_reader" {
   principal_id         = var.agic_object_id
 }
 
+# AGIC requires Managed Identity Operator on the AppGW UAMI to update the gateway
+# without this the CreateOrUpdate call returns 403 LinkedAuthorizationFailed
+resource "azurerm_role_assignment" "agic_appgw_uami_operator" {
+  scope                = var.appgw_identity_id
+  role_definition_name = "Managed Identity Operator"
+  principal_id         = var.agic_object_id
+}
+
 # AKS cluster identity needs Network Contributor on the VNet to manage internal LBs
 resource "azurerm_role_assignment" "aks_vnet_network_contributor" {
   scope                = var.vnet_id
