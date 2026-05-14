@@ -49,8 +49,10 @@ metadata:
     {{- include "crewmeister-challenge.labels" . | nindent 4 }}
 spec:
   ports:
-    - port: 3306
+    - name: mysql
+      port: 3306
+      targetPort: 3306
   selector:
     app: mysql
-  clusterIP: None
+  type: ClusterIP
 {{- end }}
