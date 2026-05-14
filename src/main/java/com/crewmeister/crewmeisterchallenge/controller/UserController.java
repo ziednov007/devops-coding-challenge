@@ -4,6 +4,8 @@ import com.crewmeister.crewmeisterchallenge.model.User;
 import com.crewmeister.crewmeisterchallenge.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,6 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class UserController {
 
+  private static final Logger log = LoggerFactory.getLogger(UserController.class);
+
   UserRepository userRepository;
 
   public UserController(UserRepository userRepository) {
@@ -21,27 +25,28 @@ public class UserController {
 
   @GetMapping( "/user")
   public String hello(@RequestParam Long id) {
-    // get user from database
+    log.info("GET /user id={}", id);
     User user = userRepository.findById(id);
+    log.info("GET /user returning name={}", user.getName());
     return "Greetings from Crewmeister, " + user.getName() + "!";
   }
 
   @PostMapping( "/user")
   public String helloPost(@RequestBody String body) {
     try {
-      // Parse JSON string to get name
       ObjectMapper objectMapper = new ObjectMapper();
       JsonNode jsonNode = objectMapper.readTree(body);
       String name = jsonNode.get("name").asText();
+      log.info("POST /user name={}", name);
 
-      // Save user to database
       User user = new User();
       user.setName(name);
       User returnedUser = userRepository.save(user);
 
+      log.info("POST /user created id={}", returnedUser.getId());
       return "Greetings from Crewmeister, " + returnedUser.getName() + "!";
     } catch (Exception e) {
-      e.printStackTrace();
+      log.error("POST /user failed to parse body", e);
       return "Error parsing JSON";
     }
   }
