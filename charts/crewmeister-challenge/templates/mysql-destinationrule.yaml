@@ -1,0 +1,14 @@
+{{- if .Values.mysql.deploy }}
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: mysql
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "crewmeister-challenge.labels" . | nindent 4 }}
+spec:
+  host: mysql.{{ .Release.Namespace }}.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: DISABLE
+{{- end }}
