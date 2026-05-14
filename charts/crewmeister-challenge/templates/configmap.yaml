@@ -6,5 +6,6 @@ metadata:
     {{- include "crewmeister-challenge.labels" . | nindent 4 }}
 data:
   SPRING_DATASOURCE_URL: "jdbc:mysql://{{ .Values.mysql.host }}:{{ .Values.mysql.port }}/{{ .Values.mysql.database }}?createDatabaseIfNotExist=true"
+  SPRING_DATASOURCE_WRITER_URL: "jdbc:mysql://{{ .Values.mysql.host }}:{{ .Values.mysql.port }}/{{ .Values.mysql.database }}?createDatabaseIfNotExist=true"
   SPRING_DATASOURCE_USERNAME: {{ .Values.mysql.username | quote }}
   ACTUATOR_ENDPOINTS: {{ .Values.actuator.endpoints | quote }}
