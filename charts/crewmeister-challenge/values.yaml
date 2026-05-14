@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/ziednov007/devops-coding-challenge
-  tag: "f3665b8"
+  tag: "957a023"
   pullPolicy: Always
   pullSecretName: ghcr-pull-secret
 
