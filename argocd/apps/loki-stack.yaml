@@ -22,8 +22,7 @@ spec:
           image:
             tag: "2.9.10"   # 2.6.1 (chart default) breaks Grafana 11 health check (no vector() support)
           persistence:
-            enabled: true
-            size: 10Gi
+            enabled: false
         promtail:
           enabled: false   # replaced by OpenTelemetry Collector (see otel-collector ArgoCD app)
         grafana:
