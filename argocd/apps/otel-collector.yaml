@@ -20,13 +20,20 @@ spec:
 
         image:
           repository: otel/opentelemetry-collector-contrib
-          tag: "0.113.0"
+          tag: "0.127.0"
 
         serviceAccount:
           create: true
 
         clusterRole:
           create: true
+          rules:
+            - apiGroups: [""]
+              resources: ["pods", "namespaces", "nodes"]
+              verbs: ["get", "list", "watch"]
+            - apiGroups: ["apps"]
+              resources: ["replicasets"]
+              verbs: ["get", "list", "watch"]
 
         # Expose OTLP ports so app sidecars / pods can send traces directly
         ports:
@@ -43,6 +50,16 @@ spec:
 
         config:
           receivers:
+            filelog:
+              include:
+                - /var/log/pods/*/*/*.log
+              include_file_path: true
+              include_file_name: false
+              operators:
+                - type: container
+                  id: container-parser
+                  add_metadata_from_filepath: true
+
             otlp:
               protocols:
                 grpc:
@@ -51,11 +68,34 @@ spec:
                   endpoint: 0.0.0.0:4318
 
           processors:
+            # The container parser in v0.113+ produces a map body {body, attributes, resources}.
+            # Extract the plain string before the Loki exporter JSON-encodes the whole map.
+            transform/extract_body:
+              log_statements:
+                - context: log
+                  statements:
+                    - set(body, body["body"]) where IsMap(body) and body["body"] != nil
+
             batch:
               timeout: 5s
               send_batch_size: 1000
 
+            filter/drop_debug:
+              logs:
+                exclude:
+                  match_type: strict
+                  severity_texts: ["TRACE", "DEBUG"]
+
+            resource:
+              attributes:
+                - action: insert
+                  key: loki.resource.labels
+                  value: k8s.namespace.name, k8s.pod.name, k8s.container.name
+
           exporters:
+            loki:
+              endpoint: http://loki-stack.observability.svc.cluster.local:3100/loki/api/v1/push
+
             otlp/jaeger:
               endpoint: jaeger-collector.observability.svc.cluster.local:4317
               tls:
@@ -63,10 +103,30 @@ spec:
 
           service:
             pipelines:
+              logs:
+                receivers: [filelog]
+                processors: [transform/extract_body, batch, filter/drop_debug, resource]
+                exporters: [loki]
               traces:
                 receivers: [otlp]
                 processors: [batch]
                 exporters: [otlp/jaeger]
+
+        extraVolumes:
+          - name: varlogpods
+            hostPath:
+              path: /var/log/pods
+          - name: varlibdockercontainers
+            hostPath:
+              path: /var/lib/docker/containers
+
+        extraVolumeMounts:
+          - name: varlogpods
+            mountPath: /var/log/pods
+            readOnly: true
+          - name: varlibdockercontainers
+            mountPath: /var/lib/docker/containers
+            readOnly: true
 
         resources:
           requests:

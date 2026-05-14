@@ -24,16 +24,7 @@ spec:
           persistence:
             enabled: false
         promtail:
-          enabled: true
-          config:
-            snippets:
-              pipelineStages:
-                - cri: {}
-                - regex:
-                    expression: 'traceId=(?P<traceId>[a-f0-9]+).*spanId=(?P<spanId>[a-f0-9]+)'
-                - labels:
-                    traceId:
-                    spanId:
+          enabled: false
         grafana:
           enabled: false   # Grafana is managed by kube-prometheus-stack
   destination:
