@@ -24,7 +24,16 @@ spec:
           persistence:
             enabled: false
         promtail:
-          enabled: false   # replaced by OpenTelemetry Collector (see otel-collector ArgoCD app)
+          enabled: true
+          config:
+            snippets:
+              pipelineStages:
+                - cri: {}
+                - regex:
+                    expression: 'traceId=(?P<traceId>[a-f0-9]+).*spanId=(?P<spanId>[a-f0-9]+)'
+                - labels:
+                    traceId:
+                    spanId:
         grafana:
           enabled: false   # Grafana is managed by kube-prometheus-stack
   destination:
