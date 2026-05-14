@@ -5,7 +5,7 @@ locals {
   cluster_name         = "crewmeister-dev-aks"
   keyvault_name        = "crewmeister-dev-kv"
   app_namespace        = "crewmeister"
-  node_count           = 2
+  node_count           = 3
   node_vm_size         = "Standard_D2_v3"
   repo_url             = "https://github.com/ziednov007/devops-coding-challenge"
   waf_mode             = "Detection"   # less strict in dev
