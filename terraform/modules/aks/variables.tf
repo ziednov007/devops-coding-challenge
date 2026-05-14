@@ -28,6 +28,11 @@ variable "node_vm_size" {
   default = "Standard_B2s"
 }
 
+variable "max_pods" {
+  type    = number
+  default = 110
+}
+
 variable "app_namespace" {
   type    = string
   default = "crewmeister"

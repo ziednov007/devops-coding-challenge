@@ -28,5 +28,6 @@ inputs = {
   appgw_id            = dependency.appgw.outputs.appgw_id
   node_count          = local.env.node_count
   node_vm_size        = local.env.node_vm_size
+  max_pods            = local.env.max_pods
   app_namespace       = local.env.app_namespace
 }
