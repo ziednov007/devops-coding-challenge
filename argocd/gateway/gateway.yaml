@@ -58,6 +58,27 @@ spec:
         - name: kube-prometheus-stack-grafana
           port: 80
 ---
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: jaeger
+  namespace: observability
+spec:
+  parentRefs:
+    - name: shared-gateway
+      namespace: istio-system
+  hostnames:
+    - tracing.ziednov007.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: jaeger-query
+          port: 16686
+---
 # AGIC Ingress — public entry point, routes all hosts to the Istio ClusterIP gateway
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -92,6 +113,16 @@ spec:
                 port:
                   number: 80
     - host: monitoring.ziednov007.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shared-gateway-istio
+                port:
+                  number: 80
+    - host: tracing.ziednov007.com
       http:
         paths:
           - path: /
