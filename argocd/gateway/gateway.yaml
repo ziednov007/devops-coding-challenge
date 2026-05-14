@@ -80,6 +80,8 @@ spec:
           port: 16686
 ---
 # AGIC Ingress — public entry point, routes all hosts to the Istio ClusterIP gateway
+# TLS is terminated at the Application Gateway using the pre-existing "appgw-ssl" cert.
+# AppGW forwards plain HTTP to the Istio ClusterIP service (no re-encryption needed).
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -90,7 +92,15 @@ metadata:
     appgw.ingress.kubernetes.io/backend-protocol: "http"
     appgw.ingress.kubernetes.io/health-probe-port: "15021"
     appgw.ingress.kubernetes.io/health-probe-path: "/healthz/ready"
+    appgw.ingress.kubernetes.io/appgw-ssl-certificate: "appgw-ssl"
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
+  tls:
+    - hosts:
+        - apps.ziednov007.com
+        - argocd.ziednov007.com
+        - monitoring.ziednov007.com
+        - tracing.ziednov007.com
   rules:
     - host: apps.ziednov007.com
       http:

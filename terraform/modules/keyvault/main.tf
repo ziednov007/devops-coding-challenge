@@ -46,10 +46,10 @@ resource "azurerm_key_vault_certificate" "appgw_ssl" {
     x509_certificate_properties {
       extended_key_usage = ["1.3.6.1.5.5.7.3.1"]
       key_usage          = ["cRLSign", "dataEncipherment", "digitalSignature", "keyAgreement", "keyEncipherment", "keyCertSign"]
-      subject            = "CN=crewmeister.internal, O=Crewmeister"
+      subject            = "CN=ziednov007.com, O=Crewmeister"
       validity_in_months = 12
       subject_alternative_names {
-        dns_names = ["crewmeister.internal", "*.crewmeister.internal"]
+        dns_names = ["ziednov007.com", "*.ziednov007.com"]
       }
     }
   }
@@ -65,12 +65,12 @@ resource "tls_self_signed_cert" "ssl" {
   private_key_pem   = tls_private_key.ssl.private_key_pem
   is_ca_certificate = false
   subject {
-    common_name  = "crewmeister.internal"
+    common_name  = "ziednov007.com"
     organization = "Crewmeister"
   }
   validity_period_hours = 8760
   allowed_uses          = ["key_encipherment", "digital_signature", "server_auth"]
-  dns_names             = ["crewmeister.internal", "*.crewmeister.internal"]
+  dns_names             = ["ziednov007.com", "*.ziednov007.com"]
 }
 
 resource "azurerm_key_vault_secret" "tls_cert" {
