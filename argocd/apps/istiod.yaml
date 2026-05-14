@@ -27,6 +27,9 @@ spec:
     server: https://kubernetes.default.svc
     namespace: istio-system
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
   # Must sync after istio-base CRDs are ready
   ignoreDifferences:
     - group: admissionregistration.k8s.io
