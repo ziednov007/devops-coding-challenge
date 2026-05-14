@@ -26,19 +26,10 @@ dependency "argocd" {
   skip_outputs = true
 }
 
-dependency "keyvault" {
-  config_path = "../keyvault"
-  mock_outputs_allowed_terraform_commands = ["validate", "plan", "init", "destroy"]
-  mock_outputs_merge_strategy_with_state  = "shallow"
-  mock_outputs = { keyvault_id = "/subscriptions/mock/resourceGroups/mock/providers/Microsoft.KeyVault/vaults/mock" }
-}
-
 inputs = {
-  repo_url      = local.env.repo_url
-  keyvault_id   = dependency.keyvault.outputs.keyvault_id
-  app_namespace = local.env.app_namespace
-  kube_host     = dependency.aks.outputs.kube_config.host
-  kube_cert     = dependency.aks.outputs.kube_config.client_certificate
-  kube_key      = dependency.aks.outputs.kube_config.client_key
-  kube_ca       = dependency.aks.outputs.kube_config.cluster_ca_certificate
+  repo_url  = local.env.repo_url
+  kube_host = dependency.aks.outputs.kube_config.host
+  kube_cert = dependency.aks.outputs.kube_config.client_certificate
+  kube_key  = dependency.aks.outputs.kube_config.client_key
+  kube_ca   = dependency.aks.outputs.kube_config.cluster_ca_certificate
 }

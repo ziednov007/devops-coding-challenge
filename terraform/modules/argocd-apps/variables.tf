@@ -2,17 +2,6 @@ variable "repo_url" {
   type = string
 }
 
-variable "keyvault_id" {
-  type        = string
-  description = "Resource ID of the Key Vault containing app secrets"
-}
-
-variable "app_namespace" {
-  type        = string
-  default     = "crewmeister"
-  description = "Namespace where the app runs — MySQL credentials secret is created here"
-}
-
 variable "kube_host" {
   type = string
 }
