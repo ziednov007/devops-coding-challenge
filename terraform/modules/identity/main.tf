@@ -39,6 +39,13 @@ resource "azurerm_role_assignment" "agic_appgw_uami_operator" {
   principal_id         = var.agic_object_id
 }
 
+# AGIC needs subnets/join/action on the AppGW subnet to update the gateway config
+resource "azurerm_role_assignment" "agic_vnet_network_contributor" {
+  scope                = var.vnet_id
+  role_definition_name = "Network Contributor"
+  principal_id         = var.agic_object_id
+}
+
 # AKS cluster identity needs Network Contributor on the VNet to manage internal LBs
 resource "azurerm_role_assignment" "aks_vnet_network_contributor" {
   scope                = var.vnet_id
