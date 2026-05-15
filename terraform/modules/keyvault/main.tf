@@ -93,4 +93,5 @@ resource "azurerm_key_vault_secret" "mysql_password" {
   name         = "mysql-password"
   value        = var.mysql_password
   key_vault_id = azurerm_key_vault.this.id
+  lifecycle { ignore_changes = [value] }
 }
