@@ -315,3 +315,47 @@ curl -s "https://apps.ziednov007.com/user?id=1"
 # Health check
 curl -s https://apps.ziednov007.com/actuator/health
 ```
+
+### Application Changes
+
+The following changes were made to the original challenge application to support the production infrastructure layer:
+
+#### `TraceContextFilter` (new class)
+`src/main/java/.../TraceContextFilter.java`
+
+A servlet filter that extracts Istio/B3 trace headers (`x-b3-traceid`, `x-b3-spanid`) from every incoming HTTP request and populates the SLF4J MDC. This allows every log line emitted during a request to carry the active trace and span IDs, enabling log-to-trace correlation in Grafana/Jaeger. The MDC is cleared in a `finally` block to prevent context leakage across threads.
+
+#### Structured logging (`logback-spring.xml`)
+`src/main/resources/logback-spring.xml`
+
+A custom Logback configuration that includes `traceId` and `spanId` from the MDC in every log line:
+```
+2024-01-15T10:23:45.123Z  INFO [...] UserController traceId=abc123 spanId=def456 : POST /user
+```
+Timestamps are UTC ISO 8601. Falls back to `traceId=none` when no trace context is present (e.g. startup logs).
+
+#### Actuator & Prometheus endpoint (`application.yml`)
+`src/main/resources/application.yml`
+
+Spring Actuator is configured to expose `health`, `info`, and `prometheus` endpoints:
+```yaml
+management.endpoints.web.exposure.include: ${ACTUATOR_ENDPOINTS:health,info,prometheus}
+```
+The `prometheus` endpoint is consumed by Prometheus (via Istio/Envoy — no Micrometer scrape is configured; this endpoint is available as a fallback). The exposed endpoints are environment-configurable via `ACTUATOR_ENDPOINTS`.
+
+#### Environment-driven datasource configuration (`application.yml`)
+All connection parameters are injected from environment variables with local-dev defaults:
+
+| Env var | Default | Purpose |
+|---------|---------|---------|
+| `SPRING_DATASOURCE_URL` | `jdbc:mysql://localhost:3306/challenge?createDatabaseIfNotExist=true` | DB URL |
+| `SPRING_DATASOURCE_USERNAME` | `root` | DB user |
+| `SPRING_DATASOURCE_PASSWORD` | `dev` | DB password |
+| `ACTUATOR_ENDPOINTS` | `health,info,prometheus` | Exposed actuator endpoints |
+
+In Kubernetes these are injected from the `ConfigMap` and `Secret` created by the Helm chart (or from Azure Key Vault via ESO).
+
+#### Multi-stage Docker build (`Dockerfile`)
+A two-stage build separates build-time and runtime dependencies:
+- **Stage 1** (`maven:3.9.9-eclipse-temurin-17`): runs `dependency:go-offline` first (layer-cached), then compiles the fat JAR
+- **Stage 2** (`eclipse-temurin:17-jre-alpine`): copies only the JAR into a minimal Alpine JRE image, keeping the final image small and free of build tooling
