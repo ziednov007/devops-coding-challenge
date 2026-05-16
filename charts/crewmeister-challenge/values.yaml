@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/ziednov007/devops-coding-challenge
-  tag: "6afdbb6"
+  tag: "d32a2f4"
   pullPolicy: Always
   pullSecretName: ""  # set to a docker-registry secret name if registry is private
 
