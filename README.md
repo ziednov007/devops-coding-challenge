@@ -23,46 +23,79 @@ You have the flexibility to utilize any cloud provider of your choice to deploy 
 ## Plus:
 
 - Create a CI Pipeline in Github to automate the application lifecycle
-
 - Add monitoring tools to check the health of the application
-
-## Important Points:
-
-- At Crewmeister, we value creativity and pushing for better. You are encouraged to expand the solution as you find fit. To do so, you must ensure high-quality documentation and that the base solution is correctly executed.
-- All the tools used must be publicly accessible or explicitly documented on how to authenticate.
-- All the tools must be free to use.
-
-## Submission:
-- Provide the link to your GitHub repository in the Greenhouse submission form.
-- Submit your completed project via the Greenhouse link in the email received from the Recruitment Manager.
 
 ---
 
 ## Solution
 
-### Architecture Overview
+Infrastructure is provisioned via **Terragrunt** orchestrating 9 Terraform modules with remote state in Azure Blob Storage. All in-cluster workloads are managed by **ArgoCD** using an App-of-Apps GitOps pattern — no Helm commands are issued at deploy time after the initial bootstrap. Observability is provided entirely at the infrastructure layer through Istio Envoy sidecars, with metrics collected by Prometheus, logs aggregated by Loki via an OpenTelemetry DaemonSet, and traces collected by Jaeger.
+
+---
+
+## Architecture Overview
 
 ```
-GitHub Actions CI/CD
-        │
-        ▼
-ghcr.io (Docker image)
-        │
-        ▼
-AKS (Azure Kubernetes Service)
- ├── istio-system
- │   ├── Istio (service mesh + Envoy sidecar metrics)
- │   └── Istio Ingress Gateway
- ├── observability
- │   ├── Jaeger (distributed tracing)
- │   ├── Prometheus (metrics from Istio/Envoy)
- │   └── Grafana (dashboards)
- └── crewmeister (app namespace — Istio injection enabled)
-     ├── MySQL (bitnami/mysql)
-     └── crewmeister-challenge (Spring Boot app)
+                        Internet
+                           │
+                           ▼ HTTPS (TLS terminated at AppGW)
+              Azure Application Gateway WAF_v2
+                   AGIC — 68.210.96.188
+                           │  HTTP (in-cluster)
+                           ▼
+                 ┌── istio-system ───────────────────────┐
+                 │  shared-gateway-istio (ClusterIP)      │
+                 │  Kubernetes Gateway API / HTTPRoute    │
+                 └──────────────┬────────────────────────┘
+            ┌───────────────────┼───────────────────────┐
+            ▼                   ▼                       ▼
+    ┌── argocd ──┐   ┌── observability ───┐  ┌── crewmeister ──┐
+    │  ArgoCD    │   │  Grafana           │  │  Spring Boot app│
+    │  (GitOps)  │   │  Prometheus        │  │  MySQL          │
+    │            │   │  Loki              │  │  Envoy sidecar  │
+    └────────────┘   │  Jaeger            │  └─────────────────┘
+                     │  OTEL Collector    │
+                     └────────────────────┘
+
+  Domains
+    apps.ziednov007.com       → crewmeister-challenge
+    argocd.ziednov007.com     → ArgoCD
+    monitoring.ziednov007.com → Grafana
+    tracing.ziednov007.com    → Jaeger
 ```
 
-Observability is provided entirely at the **infrastructure layer** via Istio — no instrumentation libraries are added to the application code. Envoy sidecars automatically capture L7 metrics (request rate, latency, error rate) which Prometheus scrapes, while Jaeger collects distributed traces exported by Istio.
+The Azure Application Gateway (AGIC) is the **only** public entry point. It terminates TLS and forwards traffic in-cluster to the Istio shared gateway, which is a **ClusterIP** service — no second LoadBalancer is needed. HTTPRoutes in each namespace route traffic to the appropriate service.
+
+---
+
+## Repository Layout
+
+```
+.
+├── terraform/modules/              Reusable Terraform modules (one per concern)
+│   ├── rg/                         Resource group
+│   ├── networking/                 VNet, subnets, NSGs, public IPs
+│   ├── keyvault/                   Key Vault (RBAC), MySQL password, TLS cert
+│   ├── appgw/                      Application Gateway WAF_v2
+│   ├── aks/                        AKS (Workload Identity, CSI, AGIC addon)
+│   ├── identity/                   Federated credentials + role assignments
+│   ├── argocd/                     ArgoCD Helm release
+│   └── argocd-apps/                Root Application resource (App-of-Apps)
+├── terragrunt/
+│   ├── terragrunt.hcl              Root config — remote state + provider injection
+│   ├── _env/dev.hcl                Dev environment variables (region, SKU, node count)
+│   └── dev/                        Per-module subfolders wiring dependencies
+├── argocd/
+│   ├── root-app.yaml               ArgoCD root Application (App-of-Apps entry point)
+│   ├── apps/                       One Application manifest per workload
+│   ├── crds/                       Vendored Gateway API CRDs (v1.2.1)
+│   └── gateway/                    Shared Istio Gateway + HTTPRoutes + AGIC Ingress
+├── charts/crewmeister-challenge/   Application Helm chart
+├── .github/workflows/
+│   ├── ci.yml                      PR gate: test + Docker build (no push) + Helm lint
+│   └── cd.yml                      Push-to-main: build → push image → bump tag in git
+└── scripts/bootstrap-tfstate.sh   One-time remote state storage account creation
+```
 
 ---
 
@@ -71,7 +104,8 @@ Observability is provided entirely at the **infrastructure layer** via Istio —
 | Tool | Version | Install |
 |------|---------|---------|
 | Azure CLI | >= 2.50 | https://learn.microsoft.com/en-us/cli/azure/install-azure-cli |
-| Terraform | >= 1.5 | https://developer.hashicorp.com/terraform/install |
+| Terraform | >= 1.9 | https://developer.hashicorp.com/terraform/install |
+| Terragrunt | >= 0.55 | https://terragrunt.gruntwork.io/docs/getting-started/install/ |
 | Helm | >= 3.14 | https://helm.sh/docs/intro/install/ |
 | kubectl | >= 1.28 | https://kubernetes.io/docs/tasks/tools/ |
 | Docker | >= 24 | https://docs.docker.com/get-docker/ |
@@ -109,91 +143,175 @@ curl http://localhost:8080/actuator/health
 ```bash
 az login
 az account set --subscription "<your-subscription-id>"
+export ARM_TENANT_ID=$(az account show --query tenantId -o tsv)
+export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+export TF_VAR_MYSQL_PASSWORD="<strong-password>"
 ```
 
-### 2. Provision infrastructure + deploy all services
+### 2. Bootstrap remote state (one-time)
 
 ```bash
-cd terraform
-terraform init
-terraform apply \
-  -var="mysql_password=<strong-password>" \
-  -var="app_image_tag=latest"
+bash scripts/bootstrap-tfstate.sh
 ```
 
-This provisions:
-- Azure Resource Group
-- AKS cluster (1 × Standard_B2s node)
-- Istio service mesh (base + istiod + ingress gateway)
-- Jaeger (all-in-one, in-memory)
-- kube-prometheus-stack (Prometheus + Grafana + Alertmanager)
-- MySQL (bitnami/mysql)
-- crewmeister-challenge application
+This creates the Azure Storage account (`crewmeistertfstate`) and blob container (`tfstate`) used by all Terragrunt modules for remote state. The script is idempotent — safe to re-run. Must be completed before the first `terragrunt run-all apply`.
 
-### 3. Access the application
+### 3. Provision infrastructure
 
 ```bash
-# Get AKS credentials
-terraform output -raw kube_config > ~/.kube/config
+cd terragrunt/dev
+terragrunt run-all init
+terragrunt run-all apply
+```
 
-# Get ingress gateway external IP
-kubectl get svc -n istio-system istio-ingressgateway
+Terragrunt resolves module dependencies automatically in this order:
 
-# Access Grafana
-kubectl port-forward -n observability svc/kube-prometheus-stack-grafana 3000:80
-# Open http://localhost:3000 (admin / admin)
+```
+rg → (networking + keyvault) → appgw → aks → identity → argocd → argocd-apps
+```
 
-# Access Jaeger UI
-kubectl port-forward -n observability svc/jaeger-query 16686:16686
-# Open http://localhost:16686
+> **Note:** A `vpn/` module exists in the repo (Point-to-Site VPN gateway) but is disabled (`skip = true`) to keep the setup simpler. It can be re-enabled if private cluster access is needed.
+
+### 4. Configure kubeconfig
+
+```bash
+az aks get-credentials \
+  --resource-group crewmeister-dev-rg \
+  --name crewmeister-dev-aks \
+  --overwrite-existing
+```
+
+### 5. Verify ArgoCD sync
+
+```bash
+kubectl get applications -n argocd
+```
+
+ArgoCD is bootstrapped by Terraform and auto-syncs from the repository. Sync waves ensure correct ordering: namespaces → cert-manager / istio-base → istiod / external-secrets → observability stack → crewmeister app.
+
+### 6. Configure local DNS
+
+The app domains are not in public DNS — they must resolve to the AGIC public IP. Get the IP:
+
+```bash
+az network public-ip show \
+  --resource-group crewmeister-dev-rg \
+  --name crewmeister-dev-appgw-pip \
+  --query ipAddress -o tsv
+```
+
+Add the following to `/etc/hosts` (Linux/macOS) or `C:\Windows\System32\drivers\etc\hosts` (Windows):
+
+```
+68.210.96.188  apps.ziednov007.com
+68.210.96.188  argocd.ziednov007.com
+68.210.96.188  monitoring.ziednov007.com
+68.210.96.188  tracing.ziednov007.com
+```
+
+> The TLS certificate is self-signed. Browsers will show a security warning — accept it, or pass `-k` to curl.
+
+### 7. Tear down
+
+```bash
+cd terragrunt/dev
+terragrunt run-all destroy
 ```
 
 ---
 
-## CI/CD Pipeline (GitHub Actions)
+## CI/CD Pipeline
 
-Two workflows are defined in `.github/workflows/`:
+### CI (`ci.yml`) — Pull request to `main`
 
-| Workflow | Trigger | Steps |
-|----------|---------|-------|
-| `ci.yml` | Pull Request → main | Test, Docker build (validate), Helm lint |
-| `cd.yml` | Push → main | Build JAR → push image to ghcr.io → deploy via Helm to AKS |
+1. Checkout code and set up Java 17 (Temurin)
+2. Run `./mvnw test` — full test suite must pass
+3. Run `docker build` — validates the Dockerfile compiles (image is **not** pushed)
+4. Run `helm lint --strict` + `helm template` — validates chart syntax and rendering
+
+### CD (`cd.yml`) — Push to `main`
+
+1. Run `./mvnw clean package -DskipTests` to build the fat JAR
+2. Log into GitHub Container Registry (GHCR) and build/push the Docker image tagged with the 7-character commit SHA and `latest`:
+   `ghcr.io/zied-boulifi/crewmeister-challenge:<sha>`
+3. Commit the updated `image.tag` into `charts/crewmeister-challenge/values.yaml` and push to `main`
+4. ArgoCD detects the git change and automatically syncs the Helm release with the new image
+
+The pipeline never calls `helm upgrade` or `kubectl`. It only updates the image tag in the chart values file — ArgoCD reconciles the cluster.
+
+```
+Developer → PR → ci.yml (test / lint / build) → merge to main
+                        ↓
+              cd.yml: build JAR → push image → commit tag update
+                        ↓
+              ArgoCD detects change → helm upgrade (in-cluster) → rolling deploy
+```
 
 ### Required GitHub Secrets
 
-| Secret | How to set |
-|--------|-----------|
-| `AZURE_CREDENTIALS` | `az ad sp create-for-rbac --name crewmeister-cd --role contributor --scopes /subscriptions/<id>/resourceGroups/crewmeister-rg --sdk-auth` |
-| `MYSQL_PASSWORD` | Any strong password matching the one used in Terraform |
+| Secret | Purpose | How to create |
+|--------|---------|---------------|
+| `AZURE_CREDENTIALS` | Service principal for Azure auth | `az ad sp create-for-rbac --name crewmeister-cd --role contributor --scopes /subscriptions/<id>/resourceGroups/crewmeister-dev-rg --sdk-auth` |
+| `MYSQL_PASSWORD` | Must match `TF_VAR_MYSQL_PASSWORD` used at provision time | Any strong password |
 
 ---
 
-## Challenge Application
+## Observability
+
+All services are accessible via DNS through AGIC — no `kubectl port-forward` needed:
+
+| Service | URL |
+|---------|-----|
+| Application | https://apps.ziednov007.com |
+| ArgoCD | https://argocd.ziednov007.com |
+| Grafana | https://monitoring.ziednov007.com |
+| Jaeger | https://tracing.ziednov007.com |
+
+### Stack
+
+| Component | Version | Role |
+|-----------|---------|------|
+| Istio + Envoy sidecars | 1.23.0 | L7 metrics, 100% trace sampling — zero app instrumentation |
+| kube-prometheus-stack | 61.3.0 | Prometheus + Grafana + Alertmanager |
+| Loki | 2.9.10 | Log aggregation |
+| Jaeger (all-in-one, in-memory) | 3.3.1 chart | Distributed tracing |
+| OpenTelemetry Collector | 0.127.0 | DaemonSet; filelog → Loki, OTLP → Jaeger |
+
+No instrumentation libraries are added to the application. Envoy sidecars capture all L7 metrics automatically. The OTEL Collector DaemonSet reads pod log files from `/var/log/pods` and ships them to Loki.
+
+### Secrets Management
+
+- **Azure Key Vault** (RBAC mode) stores the MySQL password and TLS certificate
+- **External Secrets Operator** syncs Key Vault entries into Kubernetes Secrets
+- **CSI Secrets Provider** additionally mounts secrets as files inside the pod
+- The application pod uses **Workload Identity** — no credentials in environment variables
+
+---
+
+## Application Reference
 
 A Spring Boot application that provides a simple user management REST API.
 
-### Technologies Used
+### Technologies
 
 - Java 17
 - Spring Boot 3.3.5
-- MySQL Database
-- Flyway Migration
-- Maven
+- MySQL 8 + Flyway migrations
 - Spring Data JPA
 - Spring Actuator
-
-### Pre-requisites
-
-- JDK 17
-- MySQL
 - Maven
 
 ### API Endpoints
 
-#### GET /user
+```bash
+# Create a user
+curl -s -X POST https://apps.ziednov007.com/user \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Alice"}'
 
-Retrieves a user by ID
+# Retrieve user by ID
+curl -s "https://apps.ziednov007.com/user?id=1"
 
-#### POST /user
-
-Creates a new user
+# Health check
+curl -s https://apps.ziednov007.com/actuator/health
+```

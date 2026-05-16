@@ -106,7 +106,7 @@ spec:
               logs:
                 receivers: [filelog]
                 processors: [transform/extract_body, batch, filter/drop_debug, resource]
-                exporters: [loki]
+                exporters: [loki, debug]
               traces:
                 receivers: [otlp]
                 processors: [batch]

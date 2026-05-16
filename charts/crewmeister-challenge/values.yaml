@@ -4,7 +4,7 @@ image:
   repository: ghcr.io/ziednov007/devops-coding-challenge
   tag: "a587dfb"
   pullPolicy: Always
-  pullSecretName: ghcr-pull-secret
+  pullSecretName: ""  # set to a docker-registry secret name if registry is private
 
 service:
   type: ClusterIP
